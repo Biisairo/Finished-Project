@@ -13,13 +13,6 @@ mlx 를 사용해 만든 간단한 플랫포머 게임
 </br>
 </br>
 
-## cub3D
-
-mlx 를 이용한 ray casting 의 이해
-
-</br>
-</br>
-
 ## Scop
 
 **OpenGL** 의 기초적인 사용법
