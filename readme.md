@@ -13,6 +13,36 @@ mlx 를 사용해 만든 간단한 플랫포머 게임
 </br>
 </br>
 
+## minishell
+
+**C** 를 사용한 shell program 의 구현
+
+**pipe** 를 통한 process 간 데이터 통신의 이해
+
+</br>
+</br>
+
+## container
+
+**C++** 의 **STL** 의 구현
+
+**vector**
+**set**
+**map**
+
+</br>
+</br>
+
+## irc
+
+**irc** 프로토콜을 활용한 **irc** 서버의 구현
+
+**socket** 통신의 이해
+
+</br>
+</br>
+
+
 ## Scop
 
 **OpenGL** 의 기초적인 사용법
