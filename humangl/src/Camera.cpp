@@ -4,15 +4,17 @@ Camera::Camera(int width, int height) {
 	this->FoV = 45.0f;
 	this->width = width;
 	this->height = height;
-	this->Projection = glm::perspective(glm::radians(this->FoV), width / static_cast<float>(height), 0.1f, 100.0f);
-	this->Position = glm::vec3(-20, 20, 20);
-	this->LookAt = glm::vec3(1, -1, 1);
+	this->zFar = 1000.f;
+	this->zNear = 0.1f;
+	this->Projection = glm::perspective(glm::radians(this->FoV), width / static_cast<float>(height), zNear, zFar);
+	this->Position = glm::vec3(0, 0, 0);
 	this->UP = glm::vec3(0, 1, 0);
-	this->horizontalAngle = 0;
-	this->horizontalAngle = 3.14 * 0.75;
-	this->verticalAngle = 3.14 * -0.2;
+	this->horizontalAngle = 3.14f;
+	this->verticalAngle = 0;
 	this->speed = 10.0f;
 	this->mouseSpeed = 0.002f;
+
+	this->firstMouse = true;
 
 	this->frontState = false;
 	this->backState = false;
@@ -65,75 +67,106 @@ void Camera::resetFov() {
 	this->FoV = 45;
 }
 
+float Camera::getFov() {
+	return this->FoV;
+}
+
+glm::vec3& Camera::getDirection() {
+	return this->direction;
+}
+
 glm::vec3 Camera::getPosition() {
 	return this->Position;
 }
 
-float Camera::getLookAt() {
-	return this->horizontalAngle;
+float Camera::getWidth() {
+	return this->width;
+}
+float Camera::getHeight() {
+	return this->height;
 }
 
+float Camera::getZFar() {
+	return this->zFar;
+}
+float Camera::getZNear() {
+	return this->zNear;
+}
+glm::vec3& Camera::getUp() {
+	return this->UP;
+}
+glm::vec3& Camera::getUpFromDirection() {
+	return this->UPfromDirection;
+}
+glm::vec3& Camera::getRight() {
+	return this->right;
+}
 
-void Camera::render(double deltaTime, double xpos, double ypos) {
-	// this->Projection = perspective(glm::radians(this->FoV), width, height, 0.1f, 100.0f);
-	this->Projection = glm::perspective(glm::radians(this->FoV), width / static_cast<float>(height), 0.1f, 100.0f);
-	// Compute time difference between current and last frame
+float Camera::getHorizonAngle() {
+	return this->horizontalAngle;
+}
+float Camera::getVerticalAngle() {
+	return this->verticalAngle;
+}
 
-	// Compute new orientation
-	this->horizontalAngle += mouseSpeed * float(this->width/2 - xpos );
+void Camera::setMousePos(double xpos, double ypos) {
+	if (this->firstMouse) {
+		this->firstMouse = false;
+		return;
+	}
+	this->horizontalAngle += mouseSpeed * float(this->width/2 - xpos);
 	if (this->horizontalAngle > glm::radians(360.f) || this->horizontalAngle < glm::radians(360.f) * -1)
 		this->horizontalAngle = 0;
-	this->verticalAngle   += mouseSpeed * float(this->height/2 - ypos );
-	if (this->verticalAngle > glm::radians(90.f))
-		this->verticalAngle = glm::radians(90.f);
-	else if (this->verticalAngle < glm::radians(90.f) * -1)
-		this->verticalAngle = glm::radians(90.f) * -1;
+	this->verticalAngle += mouseSpeed * float(this->height/2 - ypos);
+	if (this->verticalAngle >= glm::radians(89.f))
+		this->verticalAngle = glm::radians(89.f);
+	else if (this->verticalAngle <= glm::radians(89.f) * -1)
+		this->verticalAngle = glm::radians(89.f) * -1;
+}
 
-	// Direction : Spherical coordinates to Cartesian coordinates conversion
-	glm::vec3 direction(
-		glm::cos(verticalAngle) * glm::sin(horizontalAngle), 
-		glm::sin(verticalAngle),
-		glm::cos(verticalAngle) * glm::cos(horizontalAngle)
+void Camera::render(double deltaTime, double xpos, double ypos) {
+	this->Projection = glm::perspective(glm::radians(this->FoV), width / static_cast<float>(height), zNear, zFar);
+
+	this->setMousePos(xpos, ypos);
+
+	// 카메라가 보고있는 방향
+	this->direction = glm::vec3(
+		cos(verticalAngle) * sin(horizontalAngle),
+		sin(verticalAngle),
+		cos(verticalAngle) * cos(horizontalAngle)
 	);
-	
-	// Right vector
-	glm::vec3 right = glm::vec3(
-		glm::sin(horizontalAngle - glm::radians(90.f)), 
+
+	// right vector
+	this->right = glm::vec3(
+		sin(horizontalAngle - glm::radians(90.f)), 
 		0,
-		glm::cos(horizontalAngle - glm::radians(90.f))
+		cos(horizontalAngle - glm::radians(90.f))
 	);
 
+	// 카메라가 보고있는 방향에서 y축을 무시한 것
 	glm::vec3 front(
-		glm::sin(horizontalAngle),
+		sin(horizontalAngle),
 		0,
-		glm::cos(horizontalAngle)
+		cos(horizontalAngle)
 	);
 	
-	// Up vector
-	this->UP = glm::cross(right, direction);
+	this->UP = glm::cross(this->right, front);
+	this->UPfromDirection = glm::cross(this->right, this->direction);
 
-	// Move front
 	if (this->frontState)
-		// this->Position += glm::vec3(direction.x, 0, direction.z) * deltaTime * speed;
 		this->Position += front * static_cast<float>(deltaTime) * speed;
-	// Move back
 	if (this->backState)
-		// this->Position -= glm::vec3(direction.x, 0, direction.z) * deltaTime * speed;
 		this->Position -= front * static_cast<float>(deltaTime) * speed;
-	// Strafe right
 	if (this->rightState)
-		this->Position += right * static_cast<float>(deltaTime) * speed;
-	// Strafe left
+		this->Position += this->right * static_cast<float>(deltaTime) * speed;
 	if (this->leftState)
-		this->Position -= right * static_cast<float>(deltaTime) * speed;
-	// Move up
+		this->Position -= this->right * static_cast<float>(deltaTime) * speed;
 	if (this->upState)
-		this->Position += glm::vec3(0, 0.015, 0) * speed;
-	// Move down
+		this->Position += this->UP * static_cast<float>(deltaTime) * speed;
 	if (this->downState)
-		this->Position -= glm::vec3(0, 0.015, 0) * speed;
+		this->Position -= this->UP * static_cast<float>(deltaTime) * speed;
 
-	glm::vec3 center = this->Position + direction;
+	glm::vec3 center = this->Position + this->direction;
 
 	this->View = glm::lookAt(
 		this->Position,

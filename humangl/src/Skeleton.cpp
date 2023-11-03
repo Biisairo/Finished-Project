@@ -463,11 +463,15 @@ void Skeleton::recursive(
 	joint->second.cor = glm::vec3(this->position[0], this->position[1], this->position[2]);
 	while (!rotateCur.empty() && !translateCur.empty()) {
 		if (rotateCur.size() == 1 && translateCur.size() == 1) {
-			joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			// joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			glm::vec4 tmp = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			joint->second.cor = glm::vec3(tmp.x, tmp.y, tmp.z);
 			joint->second.cor = joint->second.cor + translateCur.top();
 		} else {
 			joint->second.cor = joint->second.cor + translateCur.top();
-			joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			// joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			glm::vec4 tmp = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			joint->second.cor = glm::vec3(tmp.x, tmp.y, tmp.z);
 
 		}
 		rotateCur.pop();
@@ -508,12 +512,17 @@ void Skeleton::recursive(
 	joint->second.cor = glm::vec3(this->position[0], this->position[1], this->position[2]);
 	while (!rotateCur.empty() && !translateCur.empty()) {
 		if (rotateCur.size() == 1 && translateCur.size() == 1) {
-			joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
-			joint->second.cor = look * glm::vec4(joint->second.cor, 1);
+			// joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			// joint->second.cor = look * glm::vec4(joint->second.cor, 1);
+			glm::vec4 tmp = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			tmp = look * tmp;
+			joint->second.cor = glm::vec3(tmp.x, tmp.y, tmp.z);
 			joint->second.cor = joint->second.cor + pos;
 		} else {
 			joint->second.cor = joint->second.cor + translateCur.top();
-			joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			// joint->second.cor = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			glm::vec4 tmp = rotateCur.top() * glm::vec4(joint->second.cor, 1);
+			joint->second.cor = glm::vec3(tmp.x, tmp.y, tmp.z);
 		}
 
 		rotateCur.pop();
@@ -534,24 +543,25 @@ void Skeleton::setLocal(float curTime) {
 	while (curTime >= this->keyFrame.back().time)
 		curTime -= this->keyFrame.back().time;
 
-	KeyFrame first, second;
+	KeyFrame *first, *second;
+	first = (this->keyFrame.end() - 1).base();
 	for (std::vector<KeyFrame>::iterator it = this->keyFrame.begin(); it != this->keyFrame.end(); it++) {
 		if (it->time > curTime) {
-			second = *it;
+			second = it.base();
 			break;
 		}
-		first = *it;
-		second = *it;
+		first = it.base();
+		second = it.base();
 	}
 	float t;
-	if (second.sequence == this->keyFrame.begin()->sequence) {
-		first = this->keyFrame.back();
-		t =  (second.time - curTime) / (second.time - 0);
+	if (second->sequence == this->keyFrame.begin()->sequence) {
+		first = &this->keyFrame.back();
+		t =  (second->time - curTime) / (second->time - 0);
 	} else 
-		t =  (second.time - curTime) / (second.time - first.time);
+		t =  (second->time - curTime) / (second->time - first->time);
 	t = std::min(std::max(t, 0.0f), 1.f);
 
-	this->setJointLocal(first, second, t);
+	this->setJointLocal(*first, *second, t);
 }
 
 void Skeleton::setJointLocal(KeyFrame &first, KeyFrame &second, float t) {

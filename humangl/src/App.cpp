@@ -7,16 +7,12 @@ App::App(): camera(500, 500), is_error(false) {
 
 	this->lastTime = glfwGetTime();
 
-	this->textureIdx = 0;
-	this->rotX = false;
-	this->rotY = false;
-	this->rotZ = false;
-
-	this->is_textrue = false;
-	this->is_fill = true;
-
 	this->frame = 0;
 	this->frameTime = glfwGetTime();
+
+	this->cameraFirst = true;
+
+	glfwGetFramebufferSize(this->window, &this->framebufferWidth, &this->framebufferHeight);
 }
 
 App::App(std::string const &title, int width, int height): camera(width, height), is_error(false) {
@@ -26,31 +22,23 @@ App::App(std::string const &title, int width, int height): camera(width, height)
 
 	this->lastTime = glfwGetTime();
 
-	this->textureIdx = 0;
-	this->rotX = false;
-	this->rotY = false;
-	this->rotZ = false;
-
-	this->is_textrue = false;
-	this->is_fill = true;
-
 	this->frame = 0;
 	this->frameTime = glfwGetTime();
-}
 
-void App::setfile(std::string const &asf, std::string const &amc) {
-	this->sk.setASF(asf);
-	this->sk.setAMC(amc);
+	this->cameraFirst = true;
+
+	glfwGetFramebufferSize(this->window, &this->framebufferWidth, &this->framebufferHeight);
 }
 
 App::~App() {
-	for (std::vector<GLuint>::iterator it = this->texture.begin(); it != this->texture.end(); it++)
-		glDeleteTextures(1, &(*it));
+	for (std::map<std::string, GLuint>::iterator it = this->texture.begin(); it != this->texture.end(); it++)
+		glDeleteTextures(1, &it->second);
 	glfwDestroyWindow(this->window);
 	glfwTerminate();
 }
 
-void App::setError() {
+void App::setError(std::string const &msg) {
+	std::cout << "\033[32mAPP ERROR : \033[35m" << msg << "\033[0m" << std::endl;
 	this->is_error = true;
 }
 
@@ -62,10 +50,8 @@ bool App::isError() {
 void App::init(std::string const &title) {
 	glfwSetErrorCallback(errorCallback);
 
-	if (!glfwInit()) {
-		std::cout << "Fail to init glfw" << std::endl;
-		return this->setError();
-	}
+	if (!glfwInit())
+		return this->setError("Fail to init glfw");
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
@@ -75,9 +61,8 @@ void App::init(std::string const &title) {
 	#endif
 	this->window = glfwCreateWindow(this->width, this->height, title.c_str(), NULL, NULL);
 	if (!this->window) {
-		std::cout << "Fail to make window" << std::endl;
 		glfwTerminate();
-		return this->setError();
+		return this->setError("Fail to make window");
 	}
 
 	glfwSetWindowUserPointer(this->window, this);
@@ -87,13 +72,12 @@ void App::init(std::string const &title) {
     glfwSetMouseButtonCallback(window, mouseCallback);
 	glfwSetScrollCallback(window, scrollCallback); 
 
-	// glew 는 context 를 생성한 후 초기화
-	glewExperimental = GL_TRUE;
-	if (glewInit() != GLEW_OK) {
-		std::cout << "Fail to init glew" << std::endl;
-		return this->setError();
-	}
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        return this->setError("Failed to initialize OpenGL context");
+    }
+}
 
+void App::setting() {
 	glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glEnable(GL_DEPTH_TEST);
@@ -107,220 +91,60 @@ void App::init(std::string const &title) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-void App::setProgram(std::string const &vs, std::string const &fs) {
-	this->program.loadShader(GL_VERTEX_SHADER, vs);
-	this->program.loadShader(GL_FRAGMENT_SHADER, fs);
-	this->program.loadProgram();
-	if (!this->program.is_set())
-		return this->setError();
-	else
-		this->program.use();
+void App::setProgram(std::string const &name, std::string const &vs, std::string const &fs) {
+	Program pro;
+	pro.loadVertex(vs);
+	pro.loadFragment(fs);
+	pro.loadProgram();
+	if (!pro.is_set())
+		return this->setError("Fail to compile Program");
+	else {
+		this->programs.insert(std::make_pair(name, pro));
+		pro.use();
+	}
 }
 
-GLuint App::getProgram() {
-	return this->program.id();
+void App::setProgram(std::string const &name, std::string const &vs, std::string const &gs, std::string const &fs) {
+	Program pro;
+	pro.loadVertex(vs);
+	pro.loadGeometry(gs);
+	pro.loadFragment(fs);
+	pro.loadProgram();
+	if (!pro.is_set())
+		return this->setError("Fail to compile Program");
+	else {
+		this->programs.insert(std::make_pair(name, pro));
+		pro.use();
+	}
 }
 
-void App::addTexture(std::string const &filename) {
-	GLuint texture = 0;
-	if (endsWith(filename, ".dds") || endsWith(filename, ".DDS"))
-		texture = loadDDS(filename);
-	else if (endsWith(filename, ".ppm") || endsWith(filename, ".PPM"))
-		texture = loadPPM(filename);
-	// else
-	// 	texture = loadTexture(filename);
-
-	if (texture == 0)
-		std::cout << "texture error" << std::endl;
-	else
-		this->texture.push_back(texture);
-}
-
-void App::deleteTexture(size_t idx) {
-	this->texture.erase(this->texture.begin() + idx);
-}
-
-void App::getUniformLocation(std::string s) {
-	GLuint tmp = glGetUniformLocation(this->program.id(), s.c_str());
-	this->uniform.insert(std::make_pair(s, tmp));
-}
-
-GLuint App::getUniformID(std::string s) {
-	return this->uniform.find(s)->second;
+void App::useProgram(std::string const &name) {
+	if (this->programs.count(name) == 0)
+		return;
+	this->programs.find(name)->second.use();
 }
 
 void	App::renderCamera(double deltaTime) {
 	double xpos, ypos;
 	glfwGetCursorPos(this->window, &xpos, &ypos);
 	glfwSetCursorPos(window, this->width/2, this->height/2);
-	this->camera.render(deltaTime, xpos, ypos);
-}
-
-float App::transitionTexture(double delta) {
-	static double ratio = 0;
-
-	delta *= 100;
-
-	if (this->is_textrue)
-		ratio += delta;
+	if (this->cameraFirst)
+		this->cameraFirst = false;
 	else
-		ratio -= delta;
-	if (ratio > 100)
-		ratio = 100;
-	else if (ratio < 0)
-		ratio = 0;
-	return ratio / 100.f;
-}
-void App::setTransition() {
-	if (this->is_textrue)
-		this->is_textrue = false;
-	else
-		this->is_textrue = true;
+		this->camera.render(deltaTime, xpos, ypos);
 }
 
-void App::changePolyMode() {
-	if (this->is_fill)
-		this->is_fill = false;
-	else
-		this->is_fill = true;
-}
-void App::toLine() {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-};
-void App::toFace() {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-};
-
-void App::loop() {
-	while(!glfwWindowShouldClose(this->window)) {
-		// get delta time
-		double time = glfwGetTime();
-		double delta = time - this->lastTime;
-		this->lastTime = time;
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.1, 0.1, 0.1, 1);
-
-		this->renderCamera(delta);
-		glm::mat4 view(this->camera.getView());
-		glm::mat4 projection(this->camera.getProjection());
-		this->setMat4("VIEW", view);
-		this->setMat4("PROJECTION", projection);
-		glm::mat4 model(1);
-		this->setMat4("MODEL", model);
-		glm::vec3 pos = this->camera.getPosition();
-		this->setVec3("POSITION", pos);
-
-///////////////////////////////////////
-		if (this->frame == 0 || glfwGetTime() - this->frameTime > 0.1) {
-        	std::stringstream ss;
-        	ss << " [" << this->frame / (glfwGetTime() - this->frameTime) << " FPS]";
-        	glfwSetWindowTitle(this->window, ss.str().c_str());
-			float fps = roundf((this->frame / (glfwGetTime() - this->frameTime)) * 100) / 100.f;
-			this->frame = 0;
-			this->frameTime = glfwGetTime();
-		}
-		this->frame++;
-
-		this->sk.setLocal(time);
-		this->sk.setGlobalTransform();
-
-		std::vector<glm::vec3> lines = sk.getLines();
-		std::vector<glm::vec3> points = sk.getPoints();
-		std::vector<glm::vec3> cube = this->person.getCube();
-		std::vector<glm::mat4> joints = this->sk.getcube();
-		
-		std::vector<glm::vec3> cor;
-		for (int i = 0; i < 1000; i++) {
-			cor.push_back(glm::vec3(i, 0, 0));
-			cor.push_back(glm::vec3(0, i, 0));
-			cor.push_back(glm::vec3(0, 0, i));
-			cor.push_back(glm::vec3(-i, 0, 0));
-			cor.push_back(glm::vec3(0, -i, 0));
-			cor.push_back(glm::vec3(0, 0, -i));
-		}
-
-		GLuint VAO;
-		GLuint LINES;
-		GLuint POINTS;
-		GLuint COR;
-		GLuint CUBE;
-		GLuint PERSON_MAT;
-
-		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &LINES);
-		glGenBuffers(1, &POINTS);
-		glGenBuffers(1, &COR);
-		glGenBuffers(1, &CUBE);
-		glGenBuffers(1, &PERSON_MAT);
-
-		glBindVertexArray(VAO);
-
-		glBindBuffer(GL_ARRAY_BUFFER, COR);
-		this->setBool("GEO", false);
-		glPointSize(5);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * cor.size(), cor.data(), GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-		this->setVec3("COLOR", 1, 0.8, 0.8);
-		glDrawArrays(GL_POINTS, 0, cor.size());
-
-		glBindBuffer(GL_ARRAY_BUFFER, LINES);
-		this->setBool("GEO", false);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * lines.size(), lines.data(), GL_STREAM_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-		this->setVec3("COLOR", 0, 1, 1);
-		glDrawArrays(GL_LINES, 0, lines.size());
-
-		glBindBuffer(GL_ARRAY_BUFFER, POINTS);
-		this->setBool("GEO", false);
-		glPointSize(10);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * points.size(), points.data(), GL_STREAM_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-		this->setVec3("COLOR", 0, 1, 0);
-		glDrawArrays(GL_POINTS, 0, points.size());
-
-
-
-
-
-		glBindBuffer(GL_ARRAY_BUFFER, CUBE);
-		this->setBool("GEO", true);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * cube.size(), cube.data(), GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, PERSON_MAT);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * joints.size(), joints.data(), GL_STREAM_DRAW);
-
-		size_t vec4Size = sizeof(glm::vec4);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(0 * vec4Size));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
-		glEnableVertexAttribArray(3);
-		glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-		glEnableVertexAttribArray(4);
-		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-		glVertexAttribDivisor(1, 1);
-		glVertexAttribDivisor(2, 1);
-		glVertexAttribDivisor(3, 1);
-		glVertexAttribDivisor(4, 1);
-
-		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		this->setVec3("COLOR", 0, 0, 1);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, cube.size(), joints.size());
-
-		// err();
-
-///////////////////////////////////////
-
-		glfwSwapBuffers(this->window);
-		glfwPollEvents();
+void App::setFrameTitle() {
+	if (this->frame == 0 || glfwGetTime() - this->frameTime > 0.1) {
+		std::stringstream ss;
+		ss << this->lastTime << " : ";
+		ss << " [" << this->frame / (glfwGetTime() - this->frameTime) << " FPS]";
+		glfwSetWindowTitle(this->window, ss.str().c_str());
+		float fps = roundf((this->frame / (glfwGetTime() - this->frameTime)) * 100) / 100.f;
+		this->frame = 0;
+		this->frameTime = glfwGetTime();
 	}
+	this->frame++;
 }
 
 // for callback
@@ -348,50 +172,62 @@ void	App::changeFov(int num) {
 void	App::resetFov() {
 	this->camera.resetFov();
 }
-void	App::changeTexture() {
-	if (this->textureIdx == this->texture.size() - 1)
-		this->textureIdx = 0;
-	else
-		this->textureIdx++;
-}
 
-
-void App::setBool(std::string const &name, bool value) {         
-	glUniform1i(glGetUniformLocation(this->program.id(), name.c_str()), (int)value); 
+void App::setBool(std::string const &programName, std::string const &name, bool value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setBool(name, value);
 }
-void App::setInt(std::string const &name, int value) { 
-	glUniform1i(glGetUniformLocation(this->program.id(), name.c_str()), value); 
+void App::setInt(std::string const &programName, std::string const &name, int value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setInt(name, value);
 }
-void App::setFloat(std::string const &name, float value) { 
-	glUniform1f(glGetUniformLocation(this->program.id(), name.c_str()), value); 
+void App::setFloat(std::string const &programName, std::string const &name, float value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setFloat(name, value);
 }
-void App::setVec2(std::string const &name, glm::vec2 value) { 
-	glUniform2fv(glGetUniformLocation(this->program.id(), name.c_str()), 1, &value[0]); 
+void App::setVec2(std::string const &programName, std::string const &name, glm::vec2 value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec2(name, value);
 }
-void App::setVec2(std::string const &name, float x, float y) { 
-	glUniform2f(glGetUniformLocation(this->program.id(), name.c_str()), x, y); 
+void App::setVec2(std::string const &programName, std::string const &name, float x, float y) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec2(name, x, y);
 }
-void App::setVec3(std::string const &name, glm::vec3 value) { 
-	glUniform3fv(glGetUniformLocation(this->program.id(), name.c_str()), 1, &value[0]); 
+void App::setVec3(std::string const &programName, std::string const &name, glm::vec3 value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec3(name, value);
 }
-void App::setVec3(std::string const &name, float x, float y, float z) { 
-	glUniform3f(glGetUniformLocation(this->program.id(), name.c_str()), x, y, z); 
+void App::setVec3(std::string const &programName, std::string const &name, float x, float y, float z) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec3(name, x, y, z);
 }
-void App::setVec4(std::string const &name, glm::vec4 value) { 
-	glUniform4fv(glGetUniformLocation(this->program.id(), name.c_str()), 1, &value[0]); 
+void App::setVec4(std::string const &programName, std::string const &name, glm::vec4 value) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec4(name, value);
 }
-void App::setVec4(std::string const &name, float x, float y, float z, float w)  { 
-	glUniform4f(glGetUniformLocation(this->program.id(), name.c_str()), x, y, z, w); 
+void App::setVec4(std::string const &programName, std::string const &name, float x, float y, float z, float w) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setVec4(name, x, y, z, w);
 }
-void App::setMat3(std::string const &name, glm::mat3 &mat) {
-	glUniformMatrix3fv(glGetUniformLocation(this->program.id(), name.c_str()), 1, GL_FALSE, &mat[0][0]);
+void App::setMat3(std::string const &programName, std::string const &name, glm::mat3 &mat) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setMat3(name, mat);
 }
-void App::setMat4(std::string const &name, glm::mat4 &mat) {
-	glUniformMatrix4fv(glGetUniformLocation(this->program.id(), name.c_str()), 1, GL_FALSE, &mat[0][0]);
+void App::setMat4(std::string const &programName, std::string const &name, glm::mat4 &mat) {
+	if (this->programs.count(programName) == 0)
+		return;
+	this->programs.find(programName)->second.setMat4(name, mat);
 }
-
-
-
 
 // for callback
 static void	keyCallback(GLFWwindow *window, int key, int scancode, int action, int mode) {
@@ -421,7 +257,18 @@ static void	keyCallback(GLFWwindow *window, int key, int scancode, int action, i
 		app->setRight(true);
 	else if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
 		app->setRight(false);
+
+	if (key == GLFW_KEY_LEFT_BRACKET && action == GLFW_PRESS)
+		app->setUp(true);
+	else if (key == GLFW_KEY_LEFT_BRACKET && action == GLFW_RELEASE)
+		app->setUp(false);
+
+	if (key == GLFW_KEY_RIGHT_BRACKET && action == GLFW_PRESS)
+		app->setDown(true);
+	else if (key == GLFW_KEY_RIGHT_BRACKET && action == GLFW_RELEASE)
+		app->setDown(false);
 }
+
 
 static void	mouseCallback(GLFWwindow* window, int button, int action, int mods) {
 	App *app = static_cast<App*>(glfwGetWindowUserPointer(window));

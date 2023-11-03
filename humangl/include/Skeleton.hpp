@@ -1,17 +1,7 @@
 #ifndef SKELETON_HPP
 #define SKELETON_HPP
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/compatibility.hpp"
-#include "glm/gtx/euler_angles.hpp"
-
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <vector>
-#include <map>
-#include <stack>
+#include "pch.hpp"
 
 #define FRAMERATE 60.f
 

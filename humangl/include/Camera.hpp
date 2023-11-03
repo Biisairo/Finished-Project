@@ -1,20 +1,24 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-
-#include <cmath>
+#include "pch.hpp"
 
 class Camera {
 
 	private:
 		glm::mat4 Projection;
 
+		float zFar;
+		float zNear;
+
 		glm::mat4 View;
 		glm::vec3 Position;
 		glm::vec3 LookAt;
 		glm::vec3 UP;
+		glm::vec3 UPfromDirection;
+		glm::vec3 right;
+
+		glm::vec3 direction;
 
 		int width;
 		int height;
@@ -25,12 +29,16 @@ class Camera {
 		float speed;
 		float mouseSpeed;
 
+		bool firstMouse;
+
 		bool frontState;
 		bool backState;
 		bool leftState;
 		bool rightState;
 		bool upState;
 		bool downState;
+
+		void setMousePos(double xpos, double ypos);
 
 	public:
 		Camera() = delete;
@@ -47,9 +55,19 @@ class Camera {
 		void setDown(bool state);
 		void changeFov(int num);
 		void resetFov();
+		float getFov();
+		glm::vec3& getDirection();
+		glm::vec3& getUp();
+		glm::vec3& getUpFromDirection();
+		glm::vec3& getRight();
+		float getWidth();
+		float getHeight();
+		float getZFar();
+		float getZNear();
 
 		glm::vec3 getPosition();
-		float getLookAt();
+		float getHorizonAngle();
+		float getVerticalAngle();
 
 		void render(double deltaTime, double xpos, double ypos);
 };

@@ -1,23 +1,68 @@
 #ifndef PERSON_HPP
 #define PERSON_HPP
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include "pch.hpp"
 
-#include <iostream>
-#include <vector>
+#include "Skeleton.hpp"
+#include "Object.hpp"
 
 class Person{
 
 	private:
+		Object point;
+		Object line;
+		GLuint VAO_body;
+		GLuint VBO_cube;
+		GLuint VBO_joints;
+
+		std::vector<glm::mat4> joints;
+		const std::vector<glm::vec3> cubeVertices = {
+			{-0.5f, -0.5f, 0.5f},
+			{0.5f, -0.5f, 0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{-0.5f, -0.5f, 0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{-0.5f,  0.5f, 0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{0.5f, -0.5f, -0.5f},
+			{0.5f,  0.5f, -0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{0.5f,  0.5f, -0.5f},
+			{-0.5f,  0.5f, -0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{-0.5f,  0.5f, -0.5f},
+			{-0.5f,  0.5f, 0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{-0.5f,  0.5f, 0.5f},
+			{-0.5f, -0.5f, 0.5f},
+			{0.5f, -0.5f, -0.5f},
+			{0.5f,  0.5f, -0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{0.5f, -0.5f, -0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{0.5f, -0.5f, 0.5f},
+			{-0.5f,  0.5f, -0.5f},
+			{0.5f,  0.5f, -0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{-0.5f,  0.5f, -0.5f},
+			{0.5f,  0.5f, 0.5f},
+			{-0.5f,  0.5f, 0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{0.5f, -0.5f, -0.5f},
+			{0.5f, -0.5f, 0.5f},
+			{-0.5f, -0.5f, -0.5f},
+			{0.5f, -0.5f, 0.5f},
+			{-0.5f, -0.5f, 0.5f}
+		};
 
 
 	public:
-		Person();
+		Person() = delete;
+		Person(Skeleton& sk);
 		~Person();
-
-		std::vector<glm::vec3> getCube();
-		std::vector<glm::mat4> getPerson(std::vector<glm::vec3> points, std::vector<glm::vec3> lines);
+		void drawPoint();
+		void drawLine();
+		void drawBody();
 
 };
 
