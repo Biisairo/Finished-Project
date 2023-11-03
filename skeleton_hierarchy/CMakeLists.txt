@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.27)
 
 # set variable
-set(PROJECT_NAME humangl)
+set(PROJECT_NAME skeleton_hierarchy)
 set(CMAKE_CXX_STANDARD 11)
 
 set(GLFW_USE 1)

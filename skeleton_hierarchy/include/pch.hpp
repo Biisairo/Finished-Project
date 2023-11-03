@@ -1,6 +1,9 @@
 #ifndef PCH_HPP
 #define PCH_HPP
 
+#define ASF "143.asf"
+#define AMC "143.amc"
+
 // std
 #include <iostream>
 #include <string>

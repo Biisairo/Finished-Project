@@ -1,6 +1,6 @@
 # ---- NAME ---- #
 
-NAME = scop
+NAME = obj_compile
 
 CXX = c++ -std=c++11
 # CXXFLAGS = -Wall -Wextra -Werror

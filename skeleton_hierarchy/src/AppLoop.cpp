@@ -45,8 +45,10 @@ void App::loop() {
 	crossHead.setting();
 
 	Skeleton sk;
-	sk.setASF("./resource/skeleton/143.asf");
-	sk.setAMC("./resource/motion/143.amc");
+	std::string asf(ASF);
+	std::string amc(AMC);
+	sk.setASF("./resource/skeleton/" + asf);
+	sk.setAMC("./resource/motion/" + amc);
 
 	Object frame;
 	frame.setVertex(quadVertices);
