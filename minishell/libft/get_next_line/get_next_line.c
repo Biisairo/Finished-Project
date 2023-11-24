@@ -101,9 +101,7 @@ ssize_t	del_file(t_manage **lst, int fd)
 {
 	t_manage	*file;
 	t_manage	*pre;
-	t_manage	*tmp;
 
-	tmp = *lst;
 	file = *lst;
 	pre = 0;
 	while (file && (file->fd) != fd)
