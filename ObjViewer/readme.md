@@ -1,10 +1,10 @@
 # ObjViewer
 
-**.obj**, **.mtl** 파일을 load 하여 mesh 를 보여주는 renderer 제작 \
-**OpenGL** 의 기초적인 사용법 \
-**Rendering Pipeline** 에 대한 이해 \
-**obj, mtl** 파일 parsing \
-3D 그래픽에서 **MVP** 모델에 대한 이해
+- **.obj**, **.mtl** 파일을 load 하여 mesh 를 보여주는 renderer 제작
+- **OpenGL** 의 기초적인 사용법
+- **Rendering Pipeline** 에 대한 이해
+- **obj, mtl** 파일 parsing
+- 3D 그래픽에서 **MVP** 모델에 대한 이해
 
 ## Build
 ```
