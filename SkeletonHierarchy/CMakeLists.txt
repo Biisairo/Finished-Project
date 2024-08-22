@@ -59,6 +59,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     "-framework IOKit"
     "-framework Cocoa"
     "-framework Carbon"
+    "-framework QuartzCore"
 )
 
 file(COPY ${PROJECT_SOURCE_DIR}/src/shader DESTINATION ${PROJECT_BINARY_DIR}/src)
