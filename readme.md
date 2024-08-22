@@ -1,5 +1,7 @@
 # Finished Project
 
+**모든 프로젝트는 Intel CPU iMac 및 M1 MacBook Air 에서 진행되었습니다**
+
 ## MiniShell
 
 - **C** 를 사용한 shell 구현
